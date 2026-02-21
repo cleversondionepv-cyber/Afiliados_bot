@@ -66,7 +66,7 @@ def main():
 
     # Scheduler para envio automático diário
     scheduler = BackgroundScheduler()
-    scheduler.add_job(lambda: enviar_ofertas_automaticas(app.bot), 'interval', trigger='cron', hour=10, minute=2)  # envia a cada 24h
+    scheduler.add_job(lambda: enviar_ofertas_automaticas(app.bot),trigger='cron', hour=10, minute=2)  # envia a cada 24h
     scheduler.start()
 
     app.run_polling()
