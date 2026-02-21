@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY,
+    nome TEXT,
+    username TEXT,
+    data_inicio TEXT
+);
+import sqlite3
+from datetime import datetime

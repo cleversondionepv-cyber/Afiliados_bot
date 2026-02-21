@@ -3,10 +3,32 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 from apscheduler.schedulers.background import BackgroundScheduler
 from config import TOKEN
+import sqlite3
+from datetime import datetime
 
 # Lista de usuários (substituir depois por DB)
-usuarios = []
-
+usuarios = [ ]
+def salvar_usuario(user_id, nome, username):
+    conn = sqlite3.connect("usuarios.db")
+    cursor = conn.cursor()
+    # Cria tabela se não existir
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY,
+            nome TEXT,
+            username TEXT,
+            data_inicio TEXT
+        )
+    """)
+    # Verifica se usuário já existe
+    cursor.execute("SELECT id FROM usuarios WHERE id=?", (user_id,))
+    if cursor.fetchone() is None:
+        cursor.execute(
+            "INSERT INTO usuarios (id, nome, username, data_inicio) VALUES (?, ?, ?, ?)",
+            (user_id, nome, username, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
+    conn.commit()
+    conn.close()
 # Carregar produtos
 def carregar_produtos():
     with open("produtos.json", "r", encoding="utf-8") as f:
@@ -17,7 +39,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.chat_id
     if user_id not in usuarios:
         usuarios.append(user_id)
-
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.message.from_user
+    salvar_usuario(user.id, user.first_name, user.username)
+    ...
     keyboard = [
         [InlineKeyboardButton("🔥 Ver Ofertas", callback_data="ofertas")],
         [InlineKeyboardButton("📂 Categorias", callback_data="categorias")]
@@ -73,3 +98,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
