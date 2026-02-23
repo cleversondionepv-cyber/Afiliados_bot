@@ -263,20 +263,18 @@ async def envio_automatico_loop(app):
 # MAIN
 # ==============================
 
+async def post_init(application):
+    application.create_task(envio_automatico_loop(application))
+
+
 def main():
-    criar_tabelas()
+    app = ApplicationBuilder().token(TOKEN).post_init(post_init).build()
 
-    app = ApplicationBuilder().token(TOKEN).build()
-
+    # handlers aqui
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    app.create_task(envio_automatico_loop(app))
+    print("Bot rodando...")
 
-    print("🤖 Bot rodando...")
     app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
