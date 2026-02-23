@@ -219,8 +219,8 @@ async def envio_automatico_loop(app):
         except Exception as e:
             print("Erro no loop automático:", e)
 
-        await asyncio.sleep(1800)  # 30 minutos
-
+        await asyncio.sleep(60)# 30 minutos
+       
 
 # ==============================
 # MAIN
