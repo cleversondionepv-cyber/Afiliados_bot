@@ -212,7 +212,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ==============================
-# ENVIO AUTOMÁTICO (LOOP ESTÁVEL)
+# ENVIO AUTOMÁTICO (VERSÃO CORRIGIDA)
 # ==============================
 
 produto_index = 0
@@ -221,37 +221,42 @@ async def envio_automatico_loop(app):
     global produto_index
 
     while True:
-        print("🔥 Loop automático rodando...")
+        try:
+            print("🔥 Loop automático rodando...")
 
-        usuarios = buscar_usuarios()
-        produtos = carregar_produtos()
+            usuarios = buscar_usuarios()
+            produtos = carregar_produtos()
 
-        if produtos and usuarios:
-            if produto_index >= len(produtos):
-                produto_index = 0
+            if produtos and usuarios:
 
-            produto = produtos[produto_index]
+                if produto_index >= len(produtos):
+                    produto_index = 0
 
-            mensagem = (
-                f"🔥 *OFERTA IMPERDÍVEL!*\n\n"
-                f"📦 *{produto['nome']}*\n"
-                f"💰 {produto['preco']}\n\n"
-                f"👇 Clique abaixo!"
-            )
+                produto = produtos[produto_index]
 
-            keyboard = [
-                [InlineKeyboardButton("🔥 Ver Oferta", callback_data=f"produto_{produto_index}")]
-            ]
+                mensagem = (
+                    f"🔥 *OFERTA IMPERDÍVEL!*\n\n"
+                    f"📦 *{produto['nome']}*\n"
+                    f"💰 {produto['preco']}\n\n"
+                    f"🔗 {produto['link']}"
+                )
 
-        async def envio_automatico_loop(app):
-             while True:
-                try:
-                    print("Enviando produto automático...")
-                    await enviar_proximo_produto(app.bot)
-                except Exception as e:
-                    print("Erro no envio automático:", e)
+                for u in usuarios:
+                    try:
+                        await app.bot.send_message(
+                            chat_id=u[0],
+                            text=mensagem,
+                            parse_mode="Markdown"
+                        )
+                    except Exception as e:
+                        print("Erro ao enviar para usuário:", e)
 
-                await asyncio.sleep(60)  # 60 segundos
+                produto_index += 1
+
+        except Exception as e:
+            print("Erro no loop automático:", e)
+
+        await asyncio.sleep(60)  # 60 segundos para teste
 
         
 # ==============================
