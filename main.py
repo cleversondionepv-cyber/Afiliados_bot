@@ -243,37 +243,34 @@ async def envio_automatico_loop(app):
                 [InlineKeyboardButton("🔥 Ver Oferta", callback_data=f"produto_{produto_index}")]
             ]
 
-            for user in usuarios:
+        async def envio_automatico_loop(app):
+             while True:
                 try:
-                    await app.bot.send_message(
-                        chat_id=user[0],
-                        text=mensagem,
-                        parse_mode="Markdown",
-                        reply_markup=InlineKeyboardMarkup(keyboard)
-                    )
-                except:
-                    pass
+                    print("Enviando produto automático...")
+                    await enviar_proximo_produto(app.bot)
+                except Exception as e:
+                    print("Erro no envio automático:", e)
 
-            produto_index += 1
+                await asyncio.sleep(60)  # 60 segundos
 
-        await asyncio.sleep(60)  # 🔁 60 segundos para teste
-
-
+        
 # ==============================
 # MAIN
 # ==============================
 
 async def post_init(application):
+    print("Iniciando envio automático...")
     application.create_task(envio_automatico_loop(application))
 
 
 def main():
-    app = ApplicationBuilder().token(TOKEN).post_init(post_init).build()
+    app = ApplicationBuilder().token(TOKEN).build()
 
-    # handlers aqui
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(CallbackQueryHandler(button_handler))
+
+    app.post_init = post_init
 
     print("Bot rodando...")
 
