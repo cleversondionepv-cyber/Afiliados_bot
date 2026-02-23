@@ -1,6 +1,7 @@
 import json
 import sqlite3
 import asyncio
+import requests
 from datetime import datetime
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -13,7 +14,6 @@ from telegram.ext import (
 
 from config import TOKEN
 
-# 🔐 COLOQUE SEU ID DO TELEGRAM AQUI
 ADMIN_ID = 7089161817
 
 # ==============================
@@ -84,50 +84,48 @@ def buscar_usuarios():
 
 
 # ==============================
-# PRODUTOS
-# ==========================
+# GOOGLE SHEETS
+# ==============================
 
-import requests
-
-def carregar_produtos_google():
+def carregar_produtos():
     try:
         url = "https://docs.google.com/spreadsheets/d/1speaE2hamb2j6yrKLMMOmo-k98FJZP7FG-_nBefVTDI/gviz/tq?tqx=out:json"
-        res = requests.get(url)
-        text = res.text
+        response = requests.get(url)
+        text = response.text
 
-        # Limpar resposta que vem com prefixo estranho
-        json_data = json.loads(text.split("(", 1)[1].rstrip(")"))
-
+        json_data = json.loads(text.split("(", 1)[1].rstrip(");"))
         rows = json_data["table"]["rows"]
 
         produtos = []
+
         for r in rows:
-            # Cada célula
-            cells = r["c"]
+            cells = r.get("c", [])
 
-            nome = cells[0]["v"] if cells[0] else ""
-            preco = cells[1]["v"] if cells[1] else ""
-            link = cells[2]["v"] if cells[2] else ""
-            plataforma = cells[3]["v"] if cells[3] else ""
-            categoria = cells[4]["v"] if cells[4] else ""
+            nome = cells[0]["v"] if len(cells) > 0 and cells[0] else ""
+            preco = cells[1]["v"] if len(cells) > 1 and cells[1] else ""
+            link = cells[2]["v"] if len(cells) > 2 and cells[2] else ""
+            plataforma = cells[3]["v"] if len(cells) > 3 and cells[3] else ""
+            categoria = cells[4]["v"] if len(cells) > 4 and cells[4] else ""
 
-            produtos.append({
-                "nome": nome,
-                "preco": preco,
-                "link": link,
-                "plataforma": plataforma,
-                "categoria": categoria
-            })
+            if nome and link:
+                produtos.append({
+                    "nome": nome,
+                    "preco": preco,
+                    "link": link,
+                    "plataforma": plataforma,
+                    "categoria": categoria
+                })
 
+        print(f"{len(produtos)} produtos carregados da planilha")
         return produtos
 
     except Exception as e:
-        print("Erro ao carregar produtos da planilha:", e)
+        print("Erro ao carregar planilha:", e)
         return []
 
 
 # ==============================
-# COMANDO /START
+# /START
 # ==============================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -135,82 +133,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     salvar_usuario(user.id, user.first_name, user.username)
 
     keyboard = [
-        [InlineKeyboardButton("🔥 Ver Ofertas", callback_data="ofertas")],
-        [InlineKeyboardButton("📂 Categorias", callback_data="categorias")]
+        [InlineKeyboardButton("🔥 Ver Ofertas", callback_data="ofertas")]
     ]
 
     await update.message.reply_text(
-        "🚀 Bem-vindo ao *Clube de Ofertas Tech*!\n\n"
-        "Escolha uma opção abaixo:",
-        parse_mode="Markdown",
+        "🚀 Bem-vindo ao Clube de Ofertas Tech!\n\nEscolha uma opção:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
 # ==============================
-# PAINEL ADMIN
-# ==============================
-
-async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.message.from_user
-
-    if user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Você não tem permissão.")
-        return
-
-    conn = sqlite3.connect("usuarios.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM usuarios")
-    total_usuarios = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM cliques")
-    total_cliques = cursor.fetchone()[0]
-
-    cursor.execute("""
-        SELECT produto, COUNT(*) as total
-        FROM cliques
-        GROUP BY produto
-        ORDER BY total DESC
-        LIMIT 1
-    """)
-
-    resultado = cursor.fetchone()
-
-    if resultado:
-        produto_top = resultado[0]
-        total_top = resultado[1]
-    else:
-        produto_top = "Nenhum ainda"
-        total_top = 0
-
-    conn.close()
-
-    media = round(total_cliques / total_usuarios, 2) if total_usuarios > 0 else 0
-
-    mensagem = (
-        f"📊 *PAINEL ADMIN*\n\n"
-        f"👥 Usuários: {total_usuarios}\n"
-        f"🖱 Cliques: {total_cliques}\n"
-        f"📈 Média: {media}\n\n"
-        f"🏆 Produto campeão:\n"
-        f"{produto_top} ({total_top} cliques)"
-    )
-
-    await update.message.reply_text(mensagem, parse_mode="Markdown")
-
-
-# ==============================
-# BOTÕES + MINI CRM
+# BOTÕES
 # ==============================
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    if query.data == "ofertas":
-        produtos = carregar_produtos()
+    produtos = carregar_produtos()
 
+    if query.data == "ofertas":
         keyboard = []
         for i, p in enumerate(produtos):
             keyboard.append(
@@ -221,32 +163,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         await query.edit_message_text(
-            "🔥 *Escolha uma oferta:*",
-            parse_mode="Markdown",
+            "🔥 Escolha uma oferta:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-    elif query.data == "categorias":
-        await query.edit_message_text("📂 Em breve!")
-
     elif query.data.startswith("produto_"):
-        user = query.from_user
         index = int(query.data.split("_")[1])
-        produtos = carregar_produtos()
-
         produto = produtos[index]
 
-        registrar_clique(user.id, produto["nome"])
+        registrar_clique(query.from_user.id, produto["nome"])
 
         await query.message.reply_text(
-            f"🚀 Você escolheu:\n\n"
-            f"📦 {produto['nome']}\n\n"
-            f"🔗 {produto['link']}"
+            f"📦 {produto['nome']}\n\n💰 {produto['preco']}\n\n🔗 {produto['link']}"
         )
 
 
 # ==============================
-# ENVIO AUTOMÁTICO (VERSÃO CORRIGIDA)
+# ENVIO AUTOMÁTICO
 # ==============================
 
 produto_index = 0
@@ -269,31 +202,26 @@ async def envio_automatico_loop(app):
                 produto = produtos[produto_index]
 
                 mensagem = (
-                    f"🔥 *OFERTA IMPERDÍVEL!*\n\n"
-                    f"📦 *{produto['nome']}*\n"
+                    f"🔥 OFERTA IMPERDÍVEL!\n\n"
+                    f"📦 {produto['nome']}\n"
                     f"💰 {produto['preco']}\n\n"
                     f"🔗 {produto['link']}"
                 )
 
                 for u in usuarios:
-                    try:
-                        await app.bot.send_message(
-                            chat_id=u[0],
-                            text=mensagem,
-                            parse_mode="Markdown"
-                        )
-                    except Exception as e:
-                        print("Erro ao enviar para usuário:", e)
+                    await app.bot.send_message(
+                        chat_id=u[0],
+                        text=mensagem
+                    )
 
                 produto_index += 1
 
         except Exception as e:
             print("Erro no loop automático:", e)
 
-        await asyncio.sleep(60)  # 30 minutos
-    
+        await asyncio.sleep(1800)  # 30 minutos
 
-        
+
 # ==============================
 # MAIN
 # ==============================
@@ -312,7 +240,6 @@ def main():
     )
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("admin", admin))
     app.add_handler(CallbackQueryHandler(button_handler))
 
     print("Bot rodando...")
