@@ -242,6 +242,7 @@ def main():
     )
 
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("admin", start))
     app.add_handler(CallbackQueryHandler(button_handler))
 
     print("Bot rodando...")
