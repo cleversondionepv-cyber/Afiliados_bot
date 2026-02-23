@@ -269,14 +269,22 @@ async def post_init(application):
 
 
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .post_init(post_init)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    app.post_init = post_init
-
     print("Bot rodando...")
 
     app.run_polling()
+
+
+if __name__ == "__main__":
+    criar_tabelas()
+    main()
