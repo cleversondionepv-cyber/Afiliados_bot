@@ -227,9 +227,11 @@ async def envio_automatico_loop(app):
 # ==============================
 
 async def post_init(application):
+    print("Limpando conexões antigas...")
+    await application.bot.delete_webhook(drop_pending_updates=True)
+
     print("Iniciando envio automático...")
     application.create_task(envio_automatico_loop(application))
-
 
 def main():
     app = (
