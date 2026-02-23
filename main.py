@@ -108,7 +108,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "🚀 Bem-vindo ao *Clube de Ofertas Tech*!\n\n"
+        "🚀 Bem-vindo ao *Clube Ofertas exclusicas/Oficial*!\n\n"
         "Aqui você encontra os melhores produtos com desconto.\n"
         "Escolha uma opção abaixo:",
         parse_mode="Markdown",
@@ -175,6 +175,7 @@ produto_index = 0
 def enviar_proximo_produto(bot):
     global produto_index
 
+    print("🔥 Scheduler disparou!")
     usuarios = buscar_usuarios()
     produtos = carregar_produtos()
 
