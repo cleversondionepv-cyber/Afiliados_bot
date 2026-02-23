@@ -85,11 +85,45 @@ def buscar_usuarios():
 
 # ==============================
 # PRODUTOS
-# ==============================
+# ==========================
 
-def carregar_produtos():
-    with open("produtos.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+import requests
+
+def carregar_produtos_google():
+    try:
+        url = "https://docs.google.com/spreadsheets/d/1speaE2hamb2j6yrKLMMOmo-k98FJZP7FG-_nBefVTDI/gviz/tq?tqx=out:json"
+        res = requests.get(url)
+        text = res.text
+
+        # Limpar resposta que vem com prefixo estranho
+        json_data = json.loads(text.split("(", 1)[1].rstrip(")"))
+
+        rows = json_data["table"]["rows"]
+
+        produtos = []
+        for r in rows:
+            # Cada célula
+            cells = r["c"]
+
+            nome = cells[0]["v"] if cells[0] else ""
+            preco = cells[1]["v"] if cells[1] else ""
+            link = cells[2]["v"] if cells[2] else ""
+            plataforma = cells[3]["v"] if cells[3] else ""
+            categoria = cells[4]["v"] if cells[4] else ""
+
+            produtos.append({
+                "nome": nome,
+                "preco": preco,
+                "link": link,
+                "plataforma": plataforma,
+                "categoria": categoria
+            })
+
+        return produtos
+
+    except Exception as e:
+        print("Erro ao carregar produtos da planilha:", e)
+        return []
 
 
 # ==============================
@@ -256,7 +290,7 @@ async def envio_automatico_loop(app):
         except Exception as e:
             print("Erro no loop automático:", e)
 
-        await asyncio.sleep(1800)  # 30 minutos
+        await asyncio.sleep(60)  # 30 minutos
     
 
         
