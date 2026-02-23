@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import asyncio
 from datetime import datetime
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,9 +11,9 @@ from telegram.ext import (
     ContextTypes,
 )
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from config import TOKEN
 
+# 🔐 COLOQUE SEU ID DO TELEGRAM AQUI
 ADMIN_ID = 7089161817
 
 # ==============================
@@ -23,7 +24,6 @@ def criar_tabelas():
     conn = sqlite3.connect("usuarios.db")
     cursor = conn.cursor()
 
-    # Tabela de usuários
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY,
@@ -33,7 +33,6 @@ def criar_tabelas():
         )
     """)
 
-    # Tabela de cliques (Mini CRM)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cliques (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,15 +104,66 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔥 Ver Ofertas", callback_data="ofertas")],
         [InlineKeyboardButton("📂 Categorias", callback_data="categorias")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "🚀 Bem-vindo ao *Clube Ofertas exclusicas/Oficial*!\n\n"
-        "Aqui você encontra os melhores produtos com desconto.\n"
+        "🚀 Bem-vindo ao *Clube de Ofertas Tech*!\n\n"
         "Escolha uma opção abaixo:",
         parse_mode="Markdown",
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+
+# ==============================
+# PAINEL ADMIN
+# ==============================
+
+async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.message.from_user
+
+    if user.id != ADMIN_ID:
+        await update.message.reply_text("❌ Você não tem permissão.")
+        return
+
+    conn = sqlite3.connect("usuarios.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM usuarios")
+    total_usuarios = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM cliques")
+    total_cliques = cursor.fetchone()[0]
+
+    cursor.execute("""
+        SELECT produto, COUNT(*) as total
+        FROM cliques
+        GROUP BY produto
+        ORDER BY total DESC
+        LIMIT 1
+    """)
+
+    resultado = cursor.fetchone()
+
+    if resultado:
+        produto_top = resultado[0]
+        total_top = resultado[1]
+    else:
+        produto_top = "Nenhum ainda"
+        total_top = 0
+
+    conn.close()
+
+    media = round(total_cliques / total_usuarios, 2) if total_usuarios > 0 else 0
+
+    mensagem = (
+        f"📊 *PAINEL ADMIN*\n\n"
+        f"👥 Usuários: {total_usuarios}\n"
+        f"🖱 Cliques: {total_cliques}\n"
+        f"📈 Média: {media}\n\n"
+        f"🏆 Produto campeão:\n"
+        f"{produto_top} ({total_top} cliques)"
+    )
+
+    await update.message.reply_text(mensagem, parse_mode="Markdown")
 
 
 # ==============================
@@ -124,7 +174,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    # Mostrar produtos
     if query.data == "ofertas":
         produtos = carregar_produtos()
 
@@ -137,19 +186,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )]
             )
 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
         await query.edit_message_text(
             "🔥 *Escolha uma oferta:*",
             parse_mode="Markdown",
-            reply_markup=reply_markup
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-    # Categorias
     elif query.data == "categorias":
-        await query.edit_message_text("📂 Em breve teremos categorias organizadas!")
+        await query.edit_message_text("📂 Em breve!")
 
-    # Clique em produto (registrar no CRM)
     elif query.data.startswith("produto_"):
         user = query.from_user
         index = int(query.data.split("_")[1])
@@ -162,112 +207,57 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(
             f"🚀 Você escolheu:\n\n"
             f"📦 {produto['nome']}\n\n"
-            f"🔗 Acesse aqui:\n{produto['link']}"
+            f"🔗 {produto['link']}"
         )
 
 
 # ==============================
-# ENVIO AUTOMÁTICO 30 MIN
+# ENVIO AUTOMÁTICO (LOOP ESTÁVEL)
 # ==============================
 
 produto_index = 0
 
-def enviar_proximo_produto(bot):
+async def envio_automatico_loop(app):
     global produto_index
 
-    print("🔥 Scheduler disparou!")
-    usuarios = buscar_usuarios()
-    produtos = carregar_produtos()
+    while True:
+        print("🔥 Loop automático rodando...")
 
-    if not produtos:
-        return
+        usuarios = buscar_usuarios()
+        produtos = carregar_produtos()
 
-    if produto_index >= len(produtos):
-        produto_index = 0
+        if produtos and usuarios:
+            if produto_index >= len(produtos):
+                produto_index = 0
 
-    produto = produtos[produto_index]
+            produto = produtos[produto_index]
 
-    mensagem = (
-        f"🔥 *OFERTA IMPERDÍVEL!*\n\n"
-        f"📦 *{produto['nome']}*\n"
-        f"💰 {produto['preco']}\n\n"
-        f"👇 Clique no botão abaixo para aproveitar!"
-    )
-
-    keyboard = [
-        [InlineKeyboardButton("🔥 Ver Oferta", callback_data=f"produto_{produto_index}")]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    for user in usuarios:
-        try:
-            bot.send_message(
-                chat_id=user[0],
-                text=mensagem,
-                parse_mode="Markdown",
-                reply_markup=reply_markup
+            mensagem = (
+                f"🔥 *OFERTA IMPERDÍVEL!*\n\n"
+                f"📦 *{produto['nome']}*\n"
+                f"💰 {produto['preco']}\n\n"
+                f"👇 Clique abaixo!"
             )
-        except:
-            pass
 
-    produto_index += 1
+            keyboard = [
+                [InlineKeyboardButton("🔥 Ver Oferta", callback_data=f"produto_{produto_index}")]
+            ]
 
-# ==============================
-# PAINEL ADMIN
-# ==============================
+            for user in usuarios:
+                try:
+                    await app.bot.send_message(
+                        chat_id=user[0],
+                        text=mensagem,
+                        parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup(keyboard)
+                    )
+                except:
+                    pass
 
-async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.message.from_user
+            produto_index += 1
 
-    if user.id != ADMIN_ID:
-        await update.message.reply_text("❌ Você não tem permissão para usar este comando.")
-        return
+        await asyncio.sleep(60)  # 🔁 60 segundos para teste
 
-    conn = sqlite3.connect("usuarios.db")
-    cursor = conn.cursor()
-
-    # Total usuários
-    cursor.execute("SELECT COUNT(*) FROM usuarios")
-    total_usuarios = cursor.fetchone()[0]
-
-    # Total cliques
-    cursor.execute("SELECT COUNT(*) FROM cliques")
-    total_cliques = cursor.fetchone()[0]
-
-    # Produto mais clicado
-    cursor.execute("""
-        SELECT produto, COUNT(*) as total
-        FROM cliques
-        GROUP BY produto
-        ORDER BY total DESC
-        LIMIT 1
-    """)
-    resultado = cursor.fetchone()
-
-    if resultado:
-        produto_top = resultado[0]
-        total_top = resultado[1]
-    else:
-        produto_top = "Nenhum ainda"
-        total_top = 0
-
-    conn.close()
-
-    media = 0
-    if total_usuarios > 0:
-        media = round(total_cliques / total_usuarios, 2)
-
-    mensagem = (
-        f"📊 *PAINEL ADMIN*\n\n"
-        f"👥 Total de usuários: {total_usuarios}\n"
-        f"🖱 Total de cliques: {total_cliques}\n"
-        f"📈 Média cliques/usuário: {media}\n\n"
-        f"🏆 Produto campeão:\n"
-        f"{produto_top} ({total_top} cliques)"
-    )
-
-    await update.message.reply_text(mensagem, parse_mode="Markdown")
 
 # ==============================
 # MAIN
@@ -282,13 +272,7 @@ def main():
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(
-        lambda: enviar_proximo_produto(app.bot),
-        trigger="interval",
-        minutes=1
-    )
-    scheduler.start()
+    app.create_task(envio_automatico_loop(app))
 
     print("🤖 Bot rodando...")
     app.run_polling()
