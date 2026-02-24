@@ -136,11 +136,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔥 Ver Ofertas", callback_data="ofertas")]
     ]
 
+    # Se for admin, adiciona botão admin
+    if user.id == ADMIN_ID:
+        keyboard.append(
+            [InlineKeyboardButton("⚙️ Painel Admin", callback_data="admin")]
+        )
+
     await update.message.reply_text(
         "🚀 Bem-vindo ao Clube de Ofertas Tech!\n\nEscolha uma opção:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 
 # ==============================
 # BOTÕES
@@ -151,6 +156,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     produtos = carregar_produtos()
+
+    if query.data == "admin":
+        await query.edit_message_text(
+            "⚙️ Painel Admin\n\n"
+            "📊 1 - Ver total de usuários\n"
+            "📈 2 - Ver total de cliques\n",
+        )
+        return
 
     if query.data == "ofertas":
         keyboard = []
