@@ -199,6 +199,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(
             f"📦 {produto['nome']}\n\n💰 {produto['preco']}\n\n🔗 {produto['link']}"
         )
+        await menu_principal(
+        chat_id=query.from_user.id,
+        context=context,
+        is_admin=(query.from_user.id == ADMIN_ID)
+    )
         
 
     elif query.data == "admin":
