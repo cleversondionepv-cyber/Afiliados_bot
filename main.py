@@ -32,26 +32,29 @@ logging.basicConfig(level=logging.INFO)
 # GOOGLE SHEETS
 # ==============================
 
+#def conectar_planilha():
+  
+import json
+
 def conectar_planilha():
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds_dict = eval(os.getenv("GOOGLE_CREDENTIALS"))
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
+
+    if not creds_json:
+        raise ValueError("GOOGLE_CREDENTIALS não configurado no Railway")
+
+    creds_dict = json.loads(creds_json)
+
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
 
     planilha = client.open_by_key(SPREADSHEET_ID)
     aba = planilha.worksheet(SHEET_NAME)
     return aba
-
-
-def buscar_produtos():
-    aba = conectar_planilha()
-    dados = aba.get_all_records()
-    return dados
-
 
 # ==============================
 # START
