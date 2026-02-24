@@ -134,6 +134,21 @@ async def envio_automatico_loop(application):
 async def envio_automatico_job(context):
     await envio_automatico_loop(context.application)
 
+async def menu_principal(chat_id, context, is_admin=False):
+    keyboard = [
+        [InlineKeyboardButton("🔥 Ver Ofertas", callback_data="ofertas")]
+    ]
+
+    if is_admin:
+        keyboard.append(
+            [InlineKeyboardButton("⚙️ Painel Admin", callback_data="admin")]
+        )
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="🚀 Menu Principal:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 # ==============================
 # START
@@ -143,20 +158,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     salvar_usuario(user.id, user.first_name, user.username)
 
-    keyboard = [
-        [InlineKeyboardButton("🔥 Ver Ofertas", callback_data="ofertas")]
-    ]
-
-    if user.id == ADMIN_ID:
-        keyboard.append(
-            [InlineKeyboardButton("⚙️ Painel Admin", callback_data="admin")]
-        )
-
-    await update.message.reply_text(
-        "🚀 Bem-vindo ao Clube de Ofertas Tech!\n\nEscolha uma opção:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+    await menu_principal(
+        chat_id=user.id,
+        context=context,
+        is_admin=(user.id == ADMIN_ID)
     )
-
 
 # ==============================
 # BOTÕES
@@ -193,6 +199,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(
             f"📦 {produto['nome']}\n\n💰 {produto['preco']}\n\n🔗 {produto['link']}"
         )
+        await menu_principal(
+        chat_id=query.from_user.id,
+        context=context,
+        is_admin=(query.from_user.id == ADMIN_ID)
+    )
 
     elif query.data == "admin":
         keyboard = [
