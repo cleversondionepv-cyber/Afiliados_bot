@@ -17,7 +17,7 @@ from telegram.ext import (
 # ==============================
 
 TOKEN = os.getenv("TOKEN")
-SPREADSHEET_ID = "1speaE2hamb2j6yrKLMMOmo-k98FJZP7FG-_nBefVTDI/edit?usp=sharing"
+SPREADSHEET_ID = "1speaE2hamb2j6yrKLMMOmo-k98FJZP7FG-_nBefVTDI"
 SHEET_NAME = "Afiliados"
 
 ADMIN_ID = 7089161817  # coloque seu ID aqui
