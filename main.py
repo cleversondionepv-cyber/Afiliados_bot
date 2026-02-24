@@ -56,6 +56,11 @@ def conectar_planilha():
     aba = planilha.worksheet(SHEET_NAME)
     return aba
 
+def buscar_produtos():
+    aba = conectar_planilha()
+    dados = aba.get_all_records()
+    return dados
+
 # ==============================
 # START
 # ==============================
