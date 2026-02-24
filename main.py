@@ -84,7 +84,7 @@ def carregar_produtos():
     creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
     client = gspread.authorize(creds)
 
-    sheet = client.open_by_url("SUA_URL_AQUI")  # substitua com o link da sua planilha
+    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1speaE2hamb2j6yrKLMMOmo-k98FJZP7FG-_nBefVTDI/edit?usp=sharing")  # substitua com o link da sua planilha
     worksheet = sheet.sheet1  # primeira aba
 
     data = worksheet.get_all_records()
