@@ -35,36 +35,28 @@ logging.basicConfig(level=logging.INFO)
 import os
 import json
 import gspread
-import tempfile
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 
 def conectar_planilha():
     scope = [
-        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
 
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
 
     if not creds_json:
-        raise ValueError("GOOGLE_CREDENTIALS não configurado no Railway")
+        raise ValueError("GOOGLE_CREDENTIALS não configurado")
 
-    # Converte string para dict
     info = json.loads(creds_json)
 
-    # 🔥 CORREÇÃO DA CHAVE PRIVADA
+    # Corrige quebras de linha
     info["private_key"] = info["private_key"].replace("\\n", "\n")
 
-    # Cria arquivo temporário com JSON corrigido
-    with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
-        json.dump(info, temp_file)
-        temp_file.flush()
-
-        creds = ServiceAccountCredentials.from_json_keyfile_name(
-            temp_file.name, scope
-        )
+    creds = Credentials.from_service_account_info(info, scopes=scope)
 
     client = gspread.authorize(creds)
+
     planilha = client.open_by_key(SPREADSHEET_ID)
     aba = planilha.worksheet(SHEET_NAME)
 
