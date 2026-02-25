@@ -49,18 +49,22 @@ def conectar_planilha():
 
     creds_dict = json.loads(creds_json)
 
+    # 🔥 Corrige quebra de linha da private_key automaticamente
+    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
 
     planilha = client.open_by_key(SPREADSHEET_ID)
     aba = planilha.worksheet(SHEET_NAME)
+
     return aba
 
+ 
 def buscar_produtos():
     aba = conectar_planilha()
     dados = aba.get_all_records()
     return dados
-
 # ==============================
 # START
 # ==============================
