@@ -32,9 +32,11 @@ logging.basicConfig(level=logging.INFO)
 # GOOGLE SHEETS
 # ==============================
 
-#def conectar_planilha():
-  
+import os
+import json
+import gspread
 import tempfile
+from oauth2client.service_account import ServiceAccountCredentials
 
 def conectar_planilha():
     scope = [
@@ -47,9 +49,15 @@ def conectar_planilha():
     if not creds_json:
         raise ValueError("GOOGLE_CREDENTIALS não configurado no Railway")
 
-    # Cria arquivo temporário com o JSON
+    # Converte string para dict
+    info = json.loads(creds_json)
+
+    # 🔥 CORREÇÃO DA CHAVE PRIVADA
+    info["private_key"] = info["private_key"].replace("\\n", "\n")
+
+    # Cria arquivo temporário com JSON corrigido
     with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
-        temp_file.write(creds_json)
+        json.dump(info, temp_file)
         temp_file.flush()
 
         creds = ServiceAccountCredentials.from_json_keyfile_name(
@@ -62,11 +70,12 @@ def conectar_planilha():
 
     return aba
 
- 
 def buscar_produtos():
-    aba = conectar_planilha()
-    dados = aba.get_all_records()
-    return dados
+ aba = conectar_planilha() 
+ dados = aba.get_all_records() 
+ return dados
+
+
 # ==============================
 # START
 # ==============================
