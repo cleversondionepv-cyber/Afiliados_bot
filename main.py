@@ -37,28 +37,15 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 
-import os
-import json
-import base64
-import gspread
-from google.oauth2.service_account import Credentials
-
 def conectar_planilha():
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds_base64 = os.getenv("GOOGLE_CREDENTIALS_BASE64")
+    creds_json = os.environ["GOOGLE_CREDENTIALS"]
 
-    if not creds_base64:
-        raise ValueError("GOOGLE_CREDENTIALS_BASE64 não configurado")
-
-    # Decodifica o base64
-    decoded_bytes = base64.b64decode(creds_base64.strip())
-    creds_json = decoded_bytes.decode("utf-8")
     info = json.loads(creds_json)
-    
 
     creds = Credentials.from_service_account_info(info, scopes=scope)
 
