@@ -55,8 +55,10 @@ def conectar_planilha():
         raise ValueError("GOOGLE_CREDENTIALS_BASE64 não configurado")
 
     # Decodifica o base64
-    creds_json = base64.b64decode(creds_base64).decode("utf-8")
+    decoded_bytes = base64.b64decode(creds_base64.strip())
+    creds_json = decoded_bytes.decode("utf-8")
     info = json.loads(creds_json)
+    
 
     creds = Credentials.from_service_account_info(info, scopes=scope)
 
