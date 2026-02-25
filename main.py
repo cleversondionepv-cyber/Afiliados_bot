@@ -34,7 +34,7 @@ logging.basicConfig(level=logging.INFO)
 
 #def conectar_planilha():
   
-import json
+import tempfile
 
 def conectar_planilha():
     scope = [
@@ -47,14 +47,16 @@ def conectar_planilha():
     if not creds_json:
         raise ValueError("GOOGLE_CREDENTIALS não configurado no Railway")
 
-    creds_dict = json.loads(creds_json)
+    # Cria arquivo temporário com o JSON
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
+        temp_file.write(creds_json)
+        temp_file.flush()
 
-    # 🔥 Corrige quebra de linha da private_key automaticamente
-    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        creds = ServiceAccountCredentials.from_json_keyfile_name(
+            temp_file.name, scope
+        )
 
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-
     planilha = client.open_by_key(SPREADSHEET_ID)
     aba = planilha.worksheet(SHEET_NAME)
 
