@@ -34,20 +34,18 @@ logging.basicConfig(level=logging.INFO)
 # GOOGLE SHEETS
 # ==============================
 
+from google.oauth2.service_account import Credentials
+
 def conectar_planilha():
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds_json = os.environ.get("GOOGLE_CREDENTIALS")
-
-    if not creds_json:
-        raise ValueError("GOOGLE_CREDENTIALS não configurado")
-
-    info = json.loads(creds_json)
-
-    creds = Credentials.from_service_account_info(info, scopes=scope)
+    creds = Credentials.from_service_account_file(
+        "credenciais.json",
+        scopes=scope
+    )
 
     client = gspread.authorize(creds)
     planilha = client.open_by_key(SPREADSHEET_ID)
