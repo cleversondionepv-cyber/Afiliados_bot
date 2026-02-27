@@ -1,8 +1,10 @@
 import logging
+import json
+from google.oauth2.service_account import Credentials
 import os
 import asyncio
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -32,25 +34,17 @@ logging.basicConfig(level=logging.INFO)
 # GOOGLE SHEETS
 # ==============================
 
-import os
-import json
-import base64
-from google.oauth2.service_account import Credentials
-import gspread
-
 def conectar_planilha():
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
 
-    creds_base64 = os.environ.get("GOOGLE_CREDENTIALS_BASE64")
+    creds_json = os.environ.get("GOOGLE_CREDENTIALS")
 
-    if not creds_base64:
-        raise ValueError("GOOGLE_CREDENTIALS_BASE64 não configurado")
+    if not creds_json:
+        raise ValueError("GOOGLE_CREDENTIALS não configurado")
 
-    decoded_bytes = base64.b64decode(creds_base64)
-    creds_json = decoded_bytes.decode("utf-8")
     info = json.loads(creds_json)
 
     creds = Credentials.from_service_account_info(info, scopes=scope)
@@ -62,9 +56,9 @@ def conectar_planilha():
     return aba
 
 def buscar_produtos():
- aba = conectar_planilha() 
- dados = aba.get_all_records() 
- return dados
+  aba = conectar_planilha() 
+  dados = aba.get_all_records() 
+  return dados
 
 
 # ==============================
