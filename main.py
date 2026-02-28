@@ -35,37 +35,25 @@ logging.basicConfig(level=logging.INFO)
 # ==============================
 
 import os
-import base64
 import json
-import gspread
 from google.oauth2.service_account import Credentials
-
 
 def conectar_planilha():
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive"
     ]
 
-    # Decodifica base64
-    creds_base64 = os.getenv("GOOGLE_CREDENTIALS_BASE64")
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
 
-    if not creds_base64:
-        raise Exception("Variável GOOGLE_CREDENTIALS_BASE64 não encontrada.")
+    if not creds_json:
+        raise Exception("Variável GOOGLE_CREDENTIALS não encontrada.")
 
-    creds_json = base64.b64decode(creds_base64).decode("utf-8")
-    creds_dict = json.loads(creds_json)
+    info = json.loads(creds_json)
 
-    creds = Credentials.from_service_account_info(
-        creds_dict,
-        scopes=scope
-    )
+    creds = Credentials.from_service_account_info(info, scopes=scope)
 
-    client = gspread.authorize(creds)
-    planilha = client.open_by_key(SPREADSHEET_ID)
-    aba = planilha.worksheet(SHEET_NAME)
-
-    return aba
+    return creds
 
 def buscar_produtos():
   aba = conectar_planilha() 
