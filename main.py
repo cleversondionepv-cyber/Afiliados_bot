@@ -152,7 +152,7 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
 
     mensagem = f"""
 🔥 {produto['Nome']}
-💰 {produto['Preco']}
+💰 {produto['Preço']}
 🛒 {produto['Link']}
     """
 
