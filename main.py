@@ -111,15 +111,16 @@ async def admin_respostas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not produtos:
             await update.message.reply_text("Nenhum produto encontrado.")
         else:
-            produto = produtos[0]
+              produto = produtos[0]
+              produto = {k.strip(): v for k, v in produto.items()}
 
-            mensagem = f"""
-🔥 {produto['Nome']}
-💰 {produto['Preco']}
-🛒 {produto['Link']}
-            """
+        mensagem = f"""
+        🔥 {produto.get('Nome', 'Produto')}
+        💰 {produto.get('Preço', '')}
+        🛒 {produto.get('Link', '')}
+        """
 
-            await update.message.reply_text(mensagem)
+        await update.message.reply_text(mensagem)
 
         # 🔁 RETORNA PARA MENU
         await update.message.reply_text(
@@ -150,15 +151,20 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
 
     produto = produtos[0]
 
+    # remove possíveis espaços nas chaves
+    produto = {k.strip(): v for k, v in produto.items()}
+
+    nome = produto.get("Nome", "Produto")
+    preco = produto.get("Preço", "")
+    link = produto.get("Link", "")
+
     mensagem = f"""
-🔥 {produto['Nome']}
-💰 {produto['Preço']}
-🛒 {produto['Link']}
+🔥 {nome}
+💰 {preco}
+🛒 {link}
     """
 
-    # Aqui você pode colocar ID de grupo ou canal
     await context.bot.send_message(chat_id=ADMIN_ID, text=mensagem)
-
 
 # ==============================
 # MAIN
@@ -172,7 +178,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin))
-    #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_resposta))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_respostas))
 
     app.job_queue.run_repeating(envio_automatico, interval=60, first=1)
 
