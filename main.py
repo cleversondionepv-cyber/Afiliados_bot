@@ -149,9 +149,13 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
     if not produtos:
         return
 
-    produto = produtos[0]
+    # cria contador se não existir
+    if "indice_produto" not in context.bot_data:
+        context.bot_data["indice_produto"] = 0
 
-    # remove possíveis espaços nas chaves
+    indice = context.bot_data["indice_produto"]
+
+    produto = produtos[indice]
     produto = {k.strip(): v for k, v in produto.items()}
 
     nome = produto.get("Nome", "Produto")
@@ -165,6 +169,9 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
     """
 
     await context.bot.send_message(chat_id=ADMIN_ID, text=mensagem)
+
+    # avança para o próximo produto
+    context.bot_data["indice_produto"] = (indice + 1) % len(produtos)
 
 # ==============================
 # MAIN
