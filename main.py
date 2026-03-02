@@ -174,7 +174,9 @@ def main():
     app.job_queue.run_repeating(envio_automatico, interval=60, first=1)
 
     print("BOT RODANDO...")
-    app.run_polling()
+    
+    # força remover qualquer webhook antigo
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
