@@ -67,10 +67,19 @@ def buscar_produtos():
 # ==============================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    # cria lista se não existir
+    if "usuarios" not in context.bot_data:
+        context.bot_data["usuarios"] = []
+
+    # adiciona usuário se não estiver na lista
+    if user_id not in context.bot_data["usuarios"]:
+        context.bot_data["usuarios"].append(user_id)
+
     await update.message.reply_text(
         "🚀 Bem-vindo! Em breve você receberá ofertas exclusivas!"
     )
-
 
 # ==============================
 # MENU ADMIN
@@ -168,7 +177,13 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
 🛒 {link}
     """
 
-    await context.bot.send_message(chat_id=ADMIN_ID, text=mensagem)
+    usuarios = context.bot_data.get("usuarios", [])
+
+    for user_id in usuarios:
+        try:
+            await context.bot.send_message(chat_id=user_id, text=mensagem)
+        except:
+         pass
 
     # avança para o próximo produto
     context.bot_data["indice_produto"] = (indice + 1) % len(produtos)
