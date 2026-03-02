@@ -164,20 +164,28 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
 # MAIN
 # ==============================
 
+async def limpar_webhook(app):
+    await app.bot.delete_webhook(drop_pending_updates=True)
+
 def main():
+ async def admin_resposta(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    mensagem = update.message.text
+    await update.message.reply_text(f"Você digitou: {mensagem}")
+
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_respostas))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_resposta))
 
     app.job_queue.run_repeating(envio_automatico, interval=60, first=1)
 
     print("BOT RODANDO...")
-    
-    # força remover qualquer webhook antigo
-    app.run_polling(drop_pending_updates=True)
 
+    # 🔥 força limpar webhook e conexões antigas
+    app.post_init = limpar_webhook
+
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
