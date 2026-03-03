@@ -202,7 +202,7 @@ def main():
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_respostas))
 
-    app.job_queue.run_repeating(envio_automatico, interval=60, first=1)
+    app.job_queue.run_repeating(envio_automatico, interval=1800, first=10)
 
     print("BOT RODANDO...")
 
