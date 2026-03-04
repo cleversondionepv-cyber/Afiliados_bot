@@ -4,6 +4,8 @@ from google.oauth2.service_account import Credentials
 import os
 import asyncio
 import gspread
+import requests
+from bs4 import BeautifulSoup
 from google.oauth2.service_account import Credentials
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
@@ -84,6 +86,27 @@ def buscar_usuarios():
         return usuarios_sheet.col_values(1)[1:]  # remove cabeçalho
     except:
         return []
+    
+# 👇 AQUI
+def extrair_imagem_do_link(url):
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+
+        resposta = requests.get(url, headers=headers, timeout=10)
+
+        soup = BeautifulSoup(resposta.text, "html.parser")
+        tag = soup.find("meta", property="og:image")
+
+        if tag and tag.get("content"):
+            return tag["content"]
+
+    except:
+        return None
+
+    return None
+
 
 # ==============================
 # START
@@ -186,7 +209,7 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
     if not produtos:
         return
 
-    # controle de índice
+    # controle de índice (rotação)
     if "indice_produto" not in context.bot_data:
         context.bot_data["indice_produto"] = 0
 
@@ -199,21 +222,28 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
     preco = produto.get("Preço", "")
     link = produto.get("Link", "")
 
-    mensagem = f"""
+    imagem = None
+    
+    caption = f"""
 🔥 {nome}
 💰 {preco}
 🛒 {link}
-    """
+"""
 
     usuarios = buscar_usuarios()
 
     for user_id in usuarios:
         try:
-            await context.bot.send_message(chat_id=int(user_id), text=mensagem)
+            await context.bot.send_message(
+                chat_id=int(user_id),
+                text=caption
+            )
         except:
             pass
 
+    # avança para próximo produto
     context.bot_data["indice_produto"] = (indice + 1) % len(produtos)
+
 # ==============================
 # MAIN
 # ==============================
