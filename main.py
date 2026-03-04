@@ -61,6 +61,29 @@ def buscar_produtos():
   dados = aba.get_all_records() 
   return dados
 
+def salvar_usuario(user_id):
+    aba = conectar_planilha()
+
+    try:
+        usuarios_sheet = aba.spreadsheet.worksheet("Usuarios")
+    except:
+        usuarios_sheet = aba.spreadsheet.add_worksheet(title="Usuarios", rows="1000", cols="1")
+        usuarios_sheet.append_row(["user_id"])
+
+    lista = usuarios_sheet.col_values(1)
+
+    if str(user_id) not in lista:
+        usuarios_sheet.append_row([str(user_id)])
+
+
+def buscar_usuarios():
+    aba = conectar_planilha()
+
+    try:
+        usuarios_sheet = aba.spreadsheet.worksheet("Usuarios")
+        return usuarios_sheet.col_values(1)[1:]  # remove cabeçalho
+    except:
+        return []
 
 # ==============================
 # START
@@ -69,16 +92,10 @@ def buscar_produtos():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    # cria lista se não existir
-    if "usuarios" not in context.bot_data:
-        context.bot_data["usuarios"] = []
-
-    # adiciona usuário se não estiver na lista
-    if user_id not in context.bot_data["usuarios"]:
-        context.bot_data["usuarios"].append(user_id)
+    salvar_usuario(user_id)
 
     await update.message.reply_text(
-        "🚀 Bem-vindo! Em breve você receberá ofertas exclusivas!"
+        "🚀 Bem-vindo! Você agora receberá ofertas exclusivas!"
     )
 
 # ==============================
@@ -152,13 +169,24 @@ async def admin_respostas(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ENVIO AUTOMÁTICO
 # ==============================
 
+from datetime import datetime
+
 async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
+
+    agora = datetime.now()
+    hora = agora.hour
+
+    # horário permitido: 08h até 20h
+    if hora < 8 or hora >= 20:
+        print("Fora do horário comercial")
+        return
+
     produtos = buscar_produtos()
 
     if not produtos:
         return
 
-    # cria contador se não existir
+    # controle de índice
     if "indice_produto" not in context.bot_data:
         context.bot_data["indice_produto"] = 0
 
@@ -177,17 +205,15 @@ async def envio_automatico(context: ContextTypes.DEFAULT_TYPE):
 🛒 {link}
     """
 
-    usuarios = context.bot_data.get("usuarios", [])
+    usuarios = buscar_usuarios()
 
     for user_id in usuarios:
         try:
-            await context.bot.send_message(chat_id=user_id, text=mensagem)
+            await context.bot.send_message(chat_id=int(user_id), text=mensagem)
         except:
-         pass
+            pass
 
-    # avança para o próximo produto
     context.bot_data["indice_produto"] = (indice + 1) % len(produtos)
-
 # ==============================
 # MAIN
 # ==============================
@@ -202,7 +228,7 @@ def main():
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_respostas))
 
-    app.job_queue.run_repeating(envio_automatico, interval=1800, first=10)
+    app.job_queue.run_repeating(envio_automatico, interval=600, first=5)
 
     print("BOT RODANDO...")
 
