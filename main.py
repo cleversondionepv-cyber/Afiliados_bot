@@ -87,26 +87,26 @@ def buscar_usuarios():
     except:
         return []
     
-# 👇 AQUI
 def extrair_imagem_do_link(url):
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        # 🟢 Caso 1: se já for link direto de imagem (MLB, WebP, JPG, etc.)
+        if any(url.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+            return url.strip()
 
+        # 🟠 Caso 2: Shopee ou outro link que precisa extrair imagem
+        headers = {"User-Agent": "Mozilla/5.0"}
         resposta = requests.get(url, headers=headers, timeout=10)
 
         soup = BeautifulSoup(resposta.text, "html.parser")
         tag = soup.find("meta", property="og:image")
 
         if tag and tag.get("content"):
-            return tag["content"]
+            return tag["content"].strip()
 
-    except:
-        return None
+    except Exception as e:
+        print("Erro ao extrair imagem:", e)
 
     return None
-
 
 # ==============================
 # START
@@ -258,7 +258,7 @@ def main():
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_respostas))
 
-    app.job_queue.run_repeating(envio_automatico, interval=600, first=5)
+    app.job_queue.run_repeating(envio_automatico, interval=60, first=1)
 
     print("BOT RODANDO...")
 
